@@ -109,7 +109,6 @@ namespace mlperf {
 enum class TestScenario {
   SingleStream,
   MultiStream,
-  MultiStreamFree,
   Server,
   Offline,
 };
@@ -159,26 +158,15 @@ struct TestSettings {
   // ==================================
   /// \name MultiStream-specific
   /**@{*/
-  /// \brief The uniform rate at which queries are produced.
-  /// The latency constraint for the MultiStream scenario is equal to
-  /// (multi_stream_max_async_queries / multi_stream_target_qps).
-  /// This does not apply to the MultiStreamFree scenario,
-  /// except as a hint for how many queries to pre-generate.
-  double multi_stream_target_qps = 10.0;
-  /// \brief The latency constraint for the MultiStreamFree scenario.
-  /// Does not apply to the MultiStream scenario, whose target latency
-  /// is a function of the QPS and max_async_queries.
-  uint64_t multi_stream_target_latency_ns = 100000000;
+  /// \brief A hint used by the loadgen to pre-generate enough samples to
+  ///        meet the minimum test duration.
+  // FIXME: JINHO NEED TO FIGURE IF THIS IS FOR SAMPLE OR QUERY OF 8 SAMPLES
+  uint64_t multi_stream_expected_latency_ns = 1000000;
   /// \brief The latency percentile for multistream mode.
-  double multi_stream_target_latency_percentile = 0.9;
+  double multi_stream_target_latency_percentile = 0.99;
   /// \brief The number of samples in each query.
-  /// \details note: This field is used as a FindPeakPerformance's lower bound.
-  /// When you run FindPeakPerformanceMode, you should make sure that this value
-  /// satisfies performance constraints.
-  int multi_stream_samples_per_query = 4;
-  /// \brief The maximum number of queries, to which a SUT has not responded,
-  /// before the loadgen will throttle issuance of new queries.
-  int multi_stream_max_async_queries = 1;
+  /// \details How many samples are bundled in a query
+  int multi_stream_samples_per_query = 8;
   /**@}*/
 
   // ==================================

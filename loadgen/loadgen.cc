@@ -231,8 +231,7 @@ std::vector<QueryMetadata> GenerateQueries(
   std::mt19937 sample_rng(settings.sample_index_rng_seed);
   std::mt19937 schedule_rng(settings.schedule_rng_seed);
 
-  constexpr bool kIsMultiStream = scenario == TestScenario::MultiStream ||
-                                  scenario == TestScenario::MultiStreamFree;
+  constexpr bool kIsMultiStream = scenario == TestScenario::MultiStream;
   const size_t sample_stride = kIsMultiStream ? samples_per_query : 1;
 
   auto sample_distribution = SampleDistribution<mode>(
@@ -499,8 +498,7 @@ PerformanceResult IssueQueries(SystemUnderTest* sut,
 
   std::vector<QuerySampleLatency> query_latencies;
   std::vector<size_t> query_intervals;
-  if (scenario == TestScenario::MultiStream ||
-      scenario == TestScenario::MultiStreamFree) {
+  if (scenario == TestScenario::MultiStream) {
     query_latencies.resize(queries_issued);
     query_intervals.resize(queries_issued);
     for (size_t i = 0; i < queries_issued; i++) {
@@ -602,8 +600,7 @@ void PerformanceSummary::ProcessLatencies() {
   }
 
   // MultiStream only after this point.
-  if (settings.scenario != TestScenario::MultiStream &&
-      settings.scenario != TestScenario::MultiStreamFree) {
+  if (settings.scenario != TestScenario::MultiStream) {
     return;
   }
 
@@ -636,8 +633,7 @@ bool PerformanceSummary::MinDurationMet(std::string* recommendation) {
       break;
     case TestScenario::SingleStream:
     case TestScenario::MultiStream:
-    case TestScenario::MultiStreamFree:
-      min_duration_met = pr.final_query_issued_time >= min_duration;
+          min_duration_met = pr.final_query_issued_time >= min_duration;
       break;
   }
   if (min_duration_met) {
@@ -646,18 +642,10 @@ bool PerformanceSummary::MinDurationMet(std::string* recommendation) {
 
   switch (settings.scenario) {
     case TestScenario::SingleStream:
+    case TestScenario::MultiStream:
       *recommendation =
           "Decrease the expected latency so the loadgen pre-generates more "
           "queries.";
-      break;
-    case TestScenario::MultiStream:
-      *recommendation =
-          "MultiStream should always meet the minimum duration. "
-          "Please file a bug.";
-      break;
-    case TestScenario::MultiStreamFree:
-      *recommendation =
-          "Increase the target QPS so the loadgen pre-generates more queries.";
       break;
     case TestScenario::Server:
       *recommendation =
@@ -681,9 +669,7 @@ bool PerformanceSummary::MinSamplesMet() {
 }
 
 bool PerformanceSummary::HasPerfConstraints() {
-  return settings.scenario == TestScenario::MultiStream ||
-         settings.scenario == TestScenario::MultiStreamFree ||
-         settings.scenario == TestScenario::Server;
+  return settings.scenario == TestScenario::Server;
 }
 
 bool PerformanceSummary::PerfConstraintsMet(std::string* recommendation) {
@@ -691,21 +677,7 @@ bool PerformanceSummary::PerfConstraintsMet(std::string* recommendation) {
   bool perf_constraints_met = true;
   switch (settings.scenario) {
     case TestScenario::SingleStream:
-      break;
     case TestScenario::MultiStream:
-      ProcessLatencies();
-      if (target_latency_percentile.query_intervals >= 2) {
-        *recommendation = "Reduce samples per query to improve latency.";
-        perf_constraints_met = false;
-      }
-      break;
-    case TestScenario::MultiStreamFree:
-      ProcessLatencies();
-      if (target_latency_percentile.query_latency >
-          settings.target_latency.count()) {
-        *recommendation = "Reduce samples per query to improve latency.";
-        perf_constraints_met = false;
-      }
       break;
     case TestScenario::Server:
       ProcessLatencies();
@@ -740,14 +712,9 @@ void PerformanceSummary::LogSummary(AsyncSummary& summary) {
       break;
     }
     case TestScenario::MultiStream: {
-      summary("Samples per query : ", settings.samples_per_query);
-      break;
-    }
-    case TestScenario::MultiStreamFree: {
-      double samples_per_second = pr.queries_issued *
-                                  settings.samples_per_query /
-                                  pr.final_query_all_samples_done_time;
-      summary("Samples per second : ", samples_per_second);
+      summary(DoubleToString(target_latency_percentile.percentile * 100, 0) +
+                  "th percentile latency (ns) : ",
+              target_latency_percentile.query_latency);
       break;
     }
     case TestScenario::Server: {
@@ -822,8 +789,7 @@ void PerformanceSummary::LogSummary(AsyncSummary& summary) {
     summary("Completed samples per second    : ",
             DoubleToString(qps_as_completed));
     summary("");
-  } else if (settings.scenario == TestScenario::MultiStream ||
-             settings.scenario == TestScenario::MultiStreamFree) {
+  } else if (settings.scenario == TestScenario::MultiStream) {
     double ms_per_interval = std::milli::den / settings.target_qps;
     summary("Intervals between each IssueQuery:  ", "qps", settings.target_qps,
             "ms", ms_per_interval);
@@ -922,14 +888,6 @@ void PerformanceSummary::LogDetail(AsyncDetail& detail) {
       MLPERF_LOG(detail, "result_qps_without_loadgen_overhead", qps_wo_lg);
       break;
     }
-    case TestScenario::MultiStreamFree: {
-      double samples_per_second = pr.queries_issued *
-                                  settings.samples_per_query /
-                                  pr.final_query_all_samples_done_time;
-      MLPERF_LOG(detail, "result_samples_per_second", samples_per_second);
-      reportPerQueryLatencies();
-      break;
-    }
     case TestScenario::MultiStream: {
       reportPerQueryLatencies();
       break;
@@ -1012,8 +970,7 @@ std::vector<LoadableSampleSet> GenerateLoadableSets(
   // Partition the samples into loadable sets.
   const size_t set_size = settings.performance_sample_count;
   const size_t set_padding =
-      (settings.scenario == TestScenario::MultiStream ||
-       settings.scenario == TestScenario::MultiStreamFree)
+      (settings.scenario == TestScenario::MultiStream)
           ? settings.samples_per_query - 1
           : 0;
   std::vector<QuerySampleIndex> loadable_set;
@@ -1318,9 +1275,7 @@ void FindPeakPerformanceMode(SystemUnderTest* sut, QuerySampleLibrary* qsl,
 #endif
   });
 
-  if (scenario != TestScenario::MultiStream &&
-      scenario != TestScenario::MultiStreamFree &&
-      scenario != TestScenario::Server) {
+  if (scenario != TestScenario::Server) {
     LogDetail([unsupported_scenario = ToString(scenario)](AsyncDetail& detail) {
 #if USE_NEW_LOGGING_FORMAT
       MLPERF_LOG_ERROR(detail, "error_invalid_config",
@@ -1513,8 +1468,6 @@ struct RunFunctions {
         return GetCompileTime<TestScenario::SingleStream>();
       case TestScenario::MultiStream:
         return GetCompileTime<TestScenario::MultiStream>();
-      case TestScenario::MultiStreamFree:
-        return GetCompileTime<TestScenario::MultiStreamFree>();
       case TestScenario::Server:
         return GetCompileTime<TestScenario::Server>();
       case TestScenario::Offline:
