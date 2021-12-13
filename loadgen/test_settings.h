@@ -43,52 +43,19 @@ namespace mlperf {
 ///    latency results.
 ///  + **Final performance result is:** a percentile of the latency.
 /// * **MultiStream**
-///  + Attempts to issue queries containing N samples each at a uniform rate.
+///  + Issues queries containing N samples.
 ///   - N is specified by \link
 ///   mlperf::TestSettings::multi_stream_samples_per_query
 ///   multi_stream_samples_per_query \endlink.
-///   - The rate is specified by \link
-///   mlperf::TestSettings::multi_stream_target_qps multi_stream_target_qps
-///   \endlink.
-///  + The loadgen will skip sending for one interval if the SUT falls behind
-///    too much.
-///  + By default, only a single query may be outstanding at a time.
+///  + The next query is only issued once the previous one has completed.
 ///  + The samples of each query are guaranteed to be contiguous with respect
 ///    to the order they were loaded in the QuerySampleLibrary.
 ///  + Latency is tracked and reported on a per-query and per-sample basis.
 ///  + The latency of a query is the maximum latency of its samples, including
 ///    any cross-thread communication within the loadgen.
-///     - If the loadgen has to skip producing for an interval because it
-///       couldn't detect that all samples were completed in time, then the
-///       query will not be considered meeting the latency constraint.
-///     - This is fair since the loadgen skipping production will reduce
-///       pressure on the SUT and should be reflected negatively in the
-///       latency percentiles.
-///     - The last query is special cased since there isn't a subsequent query
-///       to delay. For the last query, the query latency without cross-thread
-///       communication is used.
-///  + **Final performance result is:** PASS if a percentile of the qer-query
-///    latencies is under a given threshold. FAIL otherwise.
-///   - The latency constraint is specified by the function (
-///     \link mlperf::TestSettings::multi_stream_max_async_queries
-///     multi_stream_max_async_queries \endlink /
-///     \link mlperf::TestSettings::multi_stream_target_qps
-///     multi_stream_target_qps \endlink).
-/// * **MultiStreamFree**
-///  + Behaves similar to MultiStream, with the exceptions that it:
-///   - Allows up to N async queries where N is limited only by the latency
-///     target.
-///   - Issues queries at a variable rate corresponding to when the N'th
-///     oldest query completes.
-///  + Not an official MLPerf scenario, but is maintained for evaluation
-///    and testing purposes.
-///  + Compared to MultiStream, there is no frequency quantization, which
-///    allows the results to reflect small performance improvements.
-///  + **Final performance result is:** PASS if a percentile of the per-query
-///    latencies is under a given threhsold. FAIL otherwise.
-///   - The latency constraint is specified by
-///     \link mlperf::TestSettings::multi_stream_target_latency_ns
-///     multi_stream_target_latency_ns \endlink.
+///  + Internal LoadGen latency between queries is not included in the
+///    latency results.
+///  + **Final performance result is:** a percentile of the query latency.
 /// * **Server**
 ///  + Sends queries with a single sample.
 ///  + Queries have a random poisson (non-uniform) arrival rate that, when
@@ -127,9 +94,7 @@ enum class TestScenario {
 ///    the comments for TestScenario.
 /// * **FindPeakPerformance**
 ///  + Determines the maximumum QPS for the Server scenario.
-///  + Determines the maximum samples per query for the MultiStream and
-///    MultiStreamFree scenarios.
-///  + Not applicable for SingleStream or Offline scenarios.
+///  + Not applicable for SingleStream, MultiStream or Offline scenarios.
 ///
 enum class TestMode {
   SubmissionRun,
@@ -162,7 +127,7 @@ struct TestSettings {
   ///        meet the minimum test duration.
   // FIXME: JINHO NEED TO FIGURE IF THIS IS FOR SAMPLE OR QUERY OF 8 SAMPLES
   uint64_t multi_stream_expected_latency_ns = 1000000;
-  /// \brief The latency percentile for multistream mode.
+  /// \brief The latency percentile for MultiStream mode.
   double multi_stream_target_latency_percentile = 0.99;
   /// \brief The number of samples in each query.
   /// \details How many samples are bundled in a query

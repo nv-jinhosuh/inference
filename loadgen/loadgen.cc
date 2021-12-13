@@ -50,7 +50,7 @@ namespace loadgen {
 /// loaded together.
 struct LoadableSampleSet {
   std::vector<QuerySampleIndex> set;
-  const size_t sample_distribution_end;  // Excludes padding in multi-stream.
+  const size_t sample_distribution_end;  // Excludes padding in MultiStream.
 };
 
 /// \brief Generates nanoseconds from a start time to multiple end times.
