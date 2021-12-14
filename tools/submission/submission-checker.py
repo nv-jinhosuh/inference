@@ -532,7 +532,8 @@ REQUIRED_PERF_POWER_FILES = ["spl.txt"]
 REQUIRED_POWER_FILES = ["client.json", "client.log", "ptd_logs.txt", "server.json", "server.log"]
 REQUIRED_ACC_FILES = ["mlperf_log_summary.txt", "mlperf_log_detail.txt", "accuracy.txt", "mlperf_log_accuracy.json"]
 REQUIRED_MEASURE_FILES = ["mlperf.conf", "user.conf", "README.md"]
-TO_MS = 1000 * 1000
+MS_TO_NS = 1000 * 1000
+S_TO_MS = 1000
 MAX_ACCURACY_LOG_SIZE = 10 * 1024
 OFFLINE_MIN_SPQ = 24576
 TEST_DURATION_MS_PRE_1_0 = 60000
@@ -840,8 +841,10 @@ def check_performance_dir(config, model, path, scenario_fixed):
                            scenario
         res = float(mlperf_log[RESULT_FIELD_NEW[scenario_for_res]])
         latency_99_percentile = mlperf_log["result_99.00_percentile_latency_ns"]
+        latency_mean = mlperf_log["result_mean_latency_ns"]
         if scenario in ["MultiStream"]:
             latency_99_percentile = mlperf_log["result_99.00_percentile_per_query_latency_ns"]
+            latency_mean = mlperf_log["result_mean_query_latency_ns"]
         min_query_count = mlperf_log["effective_min_query_count"]
         samples_per_query = mlperf_log["effective_samples_per_query"]
         min_duration = mlperf_log["effective_min_duration_ms"]
@@ -865,10 +868,11 @@ def check_performance_dir(config, model, path, scenario_fixed):
         scenario = rt["Scenario"].replace(" ","")
         res = float(rt[RESULT_FIELD[scenario]])
         latency_99_percentile = int(rt['99.00 percentile latency (ns)'])
+        latency_mean = int(rt['Mean latency (ns)'])
         min_query_count = int(rt['min_query_count'])
         samples_per_query = int(rt['samples_per_query'])
         min_duration = int(rt["min_duration (ms)"])
-        if scenario == "SingleStream" or (scenario == "MultiStream" and not config.uses_legacy_multistream()):
+        if scenario == "SingleStream":
             qps_wo_loadgen_overhead = float(rt["QPS w/o loadgen overhead"])
 
     # check if there are any errors in the detailed log
@@ -890,7 +894,7 @@ def check_performance_dir(config, model, path, scenario_fixed):
         log.error("%s schedule_rng_seed is wrong, expected=%s, found=%s", fname, config.seeds["schedule_rng_seed"], schedule_rng_seed)
 
     if scenario == "SingleStream" or (scenario == "MultiStream" and not config.uses_legacy_multistream()):
-        res /= TO_MS
+        res /= MS_TO_NS
 
     if config.version != "v0.5":
         # FIXME: for open we script this because open can submit in all scenarios
@@ -918,15 +922,18 @@ def check_performance_dir(config, model, path, scenario_fixed):
                         fname, required_min_duration, min_duration)
 
     inferred = False
-    # special case for Offline results inferred from SingleStream
-    if scenario_fixed in ["Offline"] and (scenario in ["SingleStream"] or\
-                                         (not config.uses_legacy_multistream() and scenario in ["MultiStream"])):
+    # special case for results inferred from different scenario
+    if scenario_fixed in ["Offline"] and scenario in ["SingleStream"]:
         inferred = True
         res = qps_wo_loadgen_overhead
+    
+    if (scenario_fixed in ["Offline"] and not config.uses_legacy_multistream()) and scenario in ["MultiStream"]:
+        inferred = True
+        res = samples_per_query * S_TO_MS / (latency_mean / MS_TO_NS)
 
     if (scenario_fixed in ["MultiStream"] and not config.uses_legacy_multistream()) and scenario in ["SingleStream"]:
         inferred = True
-        res = (latency_99_percentile * samples_per_query) / TO_MS
+        res = (latency_99_percentile * samples_per_query) / MS_TO_NS
 
     return is_valid, res, inferred
 
