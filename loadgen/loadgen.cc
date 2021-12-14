@@ -353,6 +353,7 @@ std::vector<QueryMetadata> GenerateQueries(
 /// \todo Move to results.h/cc
 struct PerformanceResult {
   std::vector<QuerySampleLatency> sample_latencies;
+  std::vector<QuerySampleLatency> query_latencies;
   size_t queries_issued;
   double max_latency;
   double final_query_scheduled_time;         // seconds from start.
@@ -592,7 +593,6 @@ void PerformanceSummary::ProcessLatencies() {
 
   // Calculate per-query stats.
   size_t query_count = pr.queries_issued;
-  assert(pr.query_latencies.size() == query_count);
   std::sort(pr.query_latencies.begin(), pr.query_latencies.end());
   QuerySampleLatency accumulated_query_latency = 0;
   for (auto latency : pr.query_latencies) {
