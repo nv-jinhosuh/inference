@@ -926,7 +926,7 @@ def check_performance_dir(config, model, path, scenario_fixed):
 
     if (scenario_fixed in ["MultiStream"] and not config.uses_legacy_multistream()) and scenario in ["SingleStream"]:
         inferred = True
-        res = (latency_99_percentile * 8.0) / TO_MS
+        res = (latency_99_percentile * samples_per_query) / TO_MS
 
     return is_valid, res, inferred
 
