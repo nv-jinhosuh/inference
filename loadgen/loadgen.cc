@@ -271,7 +271,7 @@ std::vector<QueryMetadata> GenerateQueries(
         // This will not overflow, since GenerateLoadableSets adds padding at
         // the end of the loadable sets in the MultiStream scenario.
         // The padding allows the starting samples to be the same for each
-        // query as the value of samples_per_query increases.
+        // query with respect to samples_per_query.
         s = loaded_samples[sample_i++];
       }
     } else if (scenario == TestScenario::Offline) {
@@ -969,7 +969,7 @@ std::vector<LoadableSampleSet> GenerateLoadableSets(
   }
 
   // Add padding for the multi stream scenario. Padding allows the
-  // startings sample to be the same for all SUTs, independent of the value
+  // starting sample to be the same for all SUTs, independent of the value
   // of samples_per_query, while enabling samples in a query to be contiguous.
   for (auto& loadable_set : result) {
     auto& set = loadable_set.set;
