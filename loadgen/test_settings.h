@@ -131,7 +131,7 @@ struct TestSettings {
   double multi_stream_target_latency_percentile = 0.99;
   /// \brief The number of samples in each query.
   /// \details How many samples are bundled in a query
-  int multi_stream_samples_per_query = 8;
+  unit64_t multi_stream_samples_per_query = 8;
   /**@}*/
 
   // ==================================
