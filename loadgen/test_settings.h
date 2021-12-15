@@ -125,8 +125,8 @@ struct TestSettings {
   /**@{*/
   /// \brief A hint used by the loadgen to pre-generate enough samples to
   ///        meet the minimum test duration.
-  // FIXME: JINHO NEED TO FIGURE IF THIS IS FOR SAMPLE OR QUERY OF 8 SAMPLES
-  uint64_t multi_stream_expected_latency_ns = 1000000;
+  /// \brief MultiStream latency is for query (not sample) latency
+  uint64_t multi_stream_expected_latency_ns = 8000000;
   /// \brief The latency percentile for MultiStream mode.
   double multi_stream_target_latency_percentile = 0.99;
   /// \brief The number of samples in each query.
