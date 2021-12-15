@@ -777,14 +777,6 @@ void PerformanceSummary::LogSummary(AsyncSummary& summary) {
     summary("Completed samples per second    : ",
             DoubleToString(qps_as_completed));
     summary("");
-    summary("Min latency (ns)                : ", sample_latency_min);
-    summary("Max latency (ns)                : ", sample_latency_max);
-    summary("Mean latency (ns)               : ", sample_latency_mean);
-    for (auto& lp : latency_percentiles) {
-      summary(
-          DoubleToString(lp.percentile * 100) + " percentile latency (ns)   : ",
-          lp.sample_latency);
-    }
   } else if (settings.scenario == TestScenario::MultiStream) {
     summary("Per-query latency:  ");
     summary("Min latency (ns)                : ", query_latency_min);
@@ -797,6 +789,16 @@ void PerformanceSummary::LogSummary(AsyncSummary& summary) {
     }
   }
 
+  if (settings.scenario != TestScenario::MultiStream) {
+    summary("Min latency (ns)                : ", sample_latency_min);
+    summary("Max latency (ns)                : ", sample_latency_max);
+    summary("Mean latency (ns)               : ", sample_latency_mean);
+    for (auto& lp : latency_percentiles) {
+      summary(
+          DoubleToString(lp.percentile * 100) + " percentile latency (ns)   : ",
+          lp.sample_latency);
+    }
+  }
 
   summary(
       "\n"
