@@ -560,7 +560,7 @@ RESULT_FIELD_NEW = {
     "Offline": "result_samples_per_second",
     "SingleStream": "result_90.00_percentile_latency_ns",
     "MultiStreamLegacy": "effective_samples_per_query",
-    "MultiStream": "result_99.00_percentile_latency_ns",
+    "MultiStream": "result_99.00_percentile_per_query_latency_ns",
     "Server": "result_scheduled_samples_per_sec"
 }
 
