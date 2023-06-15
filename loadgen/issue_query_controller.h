@@ -133,7 +133,7 @@ class QueryMetadata {
 struct IssueQueryState {
   // Information from caller to controller.
   SystemUnderTest* sut;
-  std::vector<QueryMetadata>* queries;
+  folly::fbvector<QueryMetadata>* queries;
   ResponseDelegate* response_delegate;
   const TestSettingsInternal* settings;
   TestMode mode;

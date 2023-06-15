@@ -211,7 +211,7 @@ auto SampleDistributionEqualIssue(size_t sample_count, size_t set_size,
 /// \todo For the server scenario only, scale the query timeline at the end so
 /// the QPS as scheduled is equal to the QPS as requested.
 template <TestScenario scenario, TestMode mode>
-std::vector<QueryMetadata> GenerateQueries(
+folly::fbvector<QueryMetadata> GenerateQueries(
     const TestSettingsInternal& settings,
     const LoadableSampleSet& loaded_sample_set, SequenceGen* sequence_gen,
     ResponseDelegate* response_delegate) {
@@ -244,7 +244,7 @@ std::vector<QueryMetadata> GenerateQueries(
     min_queries = loaded_samples.size() / samples_per_query;
   }
 
-  std::vector<QueryMetadata> queries;
+  folly::fbvector<QueryMetadata> queries;
 
   // Using the std::mt19937 pseudo-random number generator ensures a modicum of
   // cross platform reproducibility for trace generation.
@@ -404,7 +404,7 @@ PerformanceResult IssueQueries(SystemUnderTest* sut,
 
   // Generate queries.
   auto sequence_id_start = sequence_gen->CurrentSampleId();
-  std::vector<QueryMetadata> queries = GenerateQueries<scenario, mode>(
+  folly::fbvector<QueryMetadata> queries = GenerateQueries<scenario, mode>(
       settings, loaded_sample_set, sequence_gen, &response_logger);
 
   // Calculated expected number of queries

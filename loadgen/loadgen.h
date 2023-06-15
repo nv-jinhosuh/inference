@@ -22,6 +22,7 @@ limitations under the License.
 #include <string>
 #include <numeric>
 
+#include <folly/FBVector.h>
 
 /// \brief Contains the loadgen API.
 namespace mlperf {
